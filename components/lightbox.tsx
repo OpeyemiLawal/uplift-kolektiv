@@ -4,10 +4,10 @@ import { useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { ZiplineImage } from "@/lib/zipline"
+import type { GalleryImage } from "@/lib/gallery"
 
 interface LightboxProps {
-  images: ZiplineImage[]
+  images: GalleryImage[]
   currentIndex: number
   isOpen: boolean
   onClose: () => void

@@ -36,69 +36,12 @@ export function ContactForm() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [isClient, setIsClient] = useState(false)
 
-  // Only check for client-side available variables
-  const hasIntegrations = cloudflare_site_key // We'll check Discord on form submission
-  const hasDiscord = true // We'll verify this on form submission
-  const hasTurnstile = !!cloudflare_site_key && isClient
-
   // Set client state to prevent hydration mismatch
   useEffect(() => {
     setIsClient(true)
   }, [])
 
 
-
-  // Initialize Cloudflare Turnstile
-  useEffect(() => {
-    if (hasTurnstile && cloudflare_site_key && isClient && typeof window !== 'undefined') {
-      // Add a small delay to ensure DOM is ready
-      const timer = setTimeout(() => {
-        // Load Turnstile script if not already loaded
-        if (!window.turnstile) {
-          const script = document.createElement('script')
-          script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
-          script.async = true
-          script.defer = true
-          script.onload = () => {
-            // Render the widget after script loads
-            if (window.turnstile && typeof cloudflare_site_key === 'string') {
-              const container = document.querySelector('.cf-turnstile')
-              if (container && !container.querySelector('iframe')) {
-                try {
-                  window.turnstile.render('.cf-turnstile', {
-                    sitekey: cloudflare_site_key,
-                    callback: (token: string) => setTurnstileToken(token),
-                    'expired-callback': () => setTurnstileToken(null),
-                    'error-callback': () => setTurnstileToken(null),
-                  })
-                } catch (error) {
-                  console.error('Turnstile render error:', error)
-                }
-              }
-            }
-          }
-          document.head.appendChild(script)
-        } else if (window.turnstile && typeof cloudflare_site_key === 'string') {
-          // Script already loaded, render widget
-          const container = document.querySelector('.cf-turnstile')
-          if (container && !container.querySelector('iframe')) {
-            try {
-              window.turnstile.render('.cf-turnstile', {
-                sitekey: cloudflare_site_key,
-                callback: (token: string) => setTurnstileToken(token),
-                'expired-callback': () => setTurnstileToken(null),
-                'error-callback': () => setTurnstileToken(null),
-              })
-            } catch (error) {
-              console.error('Turnstile render error:', error)
-            }
-          }
-        }
-      }, 100)
-
-      return () => clearTimeout(timer)
-    }
-  }, [hasTurnstile, cloudflare_site_key, isClient])
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -119,10 +62,7 @@ export function ContactForm() {
       newErrors.message = "Message must be at least 10 characters long"
     }
 
-    // Validate Turnstile if enabled
-    if (hasTurnstile && !turnstileToken) {
-      newErrors.general = "Please complete the security verification"
-    }
+
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -139,7 +79,13 @@ export function ContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    console.log('🚀 Form submission started')
+    console.log('📋 Form data:', formData)
+    console.log('🔐 Turnstile token:', turnstileToken ? 'SET' : 'NOT SET')
+    console.log('📧 Has Discord:', hasDiscord)
+
     if (!validateForm()) {
+      console.log('❌ Form validation failed')
       return
     }
 
@@ -166,11 +112,17 @@ export function ContactForm() {
         body: JSON.stringify(payload),
       })
 
+        console.log('📡 API Response status:', response.status)
         const result = await response.json()
+        console.log('📡 API Response body:', result)
 
         if (!response.ok) {
           // Handle specific error messages from the API
           const errorMessage = result.error || "Failed to send message"
+          console.log('❌ API Error:', errorMessage)
+          if (result.details) {
+            console.log('🔍 Error details:', result.details)
+          }
           throw new Error(errorMessage)
         }
 
@@ -196,7 +148,38 @@ export function ContactForm() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      {!hasIntegrations && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 p-4 bg-gray-800/50 border border-gray-700 rounded-lg"
+        >
+          <div className="flex items-center gap-2 text-gray-300">
+            <AlertCircle size={16} />
+            <p className="text-sm">
+              Contact form integrations are not yet configured. The form will work once Discord webhook and/or
+              Cloudflare Turnstile are set up.
+            </p>
+          </div>
+        </motion.div>
+      )}
 
+      {isClient && hasIntegrations && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 p-4 bg-green-900/20 border border-green-500/20 rounded-lg"
+        >
+          <div className="flex items-center gap-2 text-green-300">
+            <CheckCircle size={16} />
+            <p className="text-sm">
+              {hasDiscord && hasTurnstile && "Discord webhook and Cloudflare Turnstile are configured and active."}
+              {hasDiscord && !hasTurnstile && "Discord webhook is configured and active."}
+              {!hasDiscord && hasTurnstile && "Cloudflare Turnstile is configured and active."}
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       <motion.form
         initial={{ opacity: 0, y: 20 }}
@@ -315,7 +298,7 @@ export function ContactForm() {
           >
             <p className="text-sm text-blue-400 flex items-center gap-2">
               <Loader2 size={16} className="animate-spin" />
-              Submitting...
+              Sending message to Discord webhook...
             </p>
           </motion.div>
         )}
@@ -329,12 +312,34 @@ export function ContactForm() {
           >
             <p className="text-sm text-green-400 flex items-center gap-2">
               <CheckCircle size={16} />
-              ✅ Submitted! We'll get back to you soon.
+              ✅ Message sent successfully to Discord! We'll get back to you soon.
             </p>
           </motion.div>
         )}
 
-
+        {/* Test Turnstile Button (for debugging) */}
+        {hasTurnstile && turnstileToken && (
+          <Button
+            type="button"
+            onClick={async () => {
+              console.log("🧪 Testing Turnstile token...")
+              try {
+                const response = await fetch("/api/test-turnstile", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ token: turnstileToken })
+                })
+                const result = await response.json()
+                console.log("🧪 Turnstile test result:", result)
+              } catch (error) {
+                console.error("🧪 Turnstile test error:", error)
+              }
+            }}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 rounded-lg transition-all duration-200"
+          >
+            🧪 Test Turnstile Token
+          </Button>
+        )}
 
         {/* Submit Button */}
         <Button
@@ -345,12 +350,12 @@ export function ContactForm() {
           {isSubmitting ? (
             <div className="flex items-center gap-2">
               <Loader2 size={16} className="animate-spin" />
-              Submitting...
+              Sending to Discord...
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <Send size={16} />
-              Send Message
+              Send to Discord
             </div>
           )}
         </Button>

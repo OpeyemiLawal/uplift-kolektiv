@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import Image from "next/image"
 import { GalleryGrid } from "./gallery-grid"
 import { getArtistImages, type Artist } from "@/lib/artists"
-import type { ZiplineImage } from "@/lib/zipline"
+import type { GalleryImage } from "@/lib/gallery"
 import { Loader2, Music } from "lucide-react"
 
 interface ArtistProfileProps {
@@ -13,7 +13,7 @@ interface ArtistProfileProps {
 }
 
 export function ArtistProfile({ artist }: ArtistProfileProps) {
-  const [artistImages, setArtistImages] = useState<ZiplineImage[]>([])
+  const [artistImages, setArtistImages] = useState<GalleryImage[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

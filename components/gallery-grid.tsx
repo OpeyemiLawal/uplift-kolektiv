@@ -3,10 +3,10 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Lightbox } from "./lightbox"
-import type { ZiplineImage } from "@/lib/zipline"
+import type { GalleryImage } from "@/lib/gallery"
 
 interface GalleryGridProps {
-  images: ZiplineImage[]
+  images: GalleryImage[]
 }
 
 export function GalleryGrid({ images }: GalleryGridProps) {
