@@ -1,6 +1,3 @@
-import fs from "fs"
-import path from "path"
-import yaml from "js-yaml"
 import type { GalleryImage } from "./gallery"
 
 export interface Artist {
@@ -11,29 +8,33 @@ export interface Artist {
   Description: string
 }
 
-export function getArtists(): Artist[] {
-  const artistsDirectory = path.join(process.cwd(), "data/artists")
-
-  if (!fs.existsSync(artistsDirectory)) {
+export async function getArtists(): Promise<Artist[]> {
+  try {
+    const response = await fetch('/api/artists')
+    if (!response.ok) {
+      throw new Error('Failed to fetch artists')
+    }
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching artists:', error)
     return []
   }
-
-  const filenames = fs.readdirSync(artistsDirectory)
-  const artists = filenames
-    .filter((name) => name.endsWith(".yaml") || name.endsWith(".yml"))
-    .map((name) => {
-      const fullPath = path.join(artistsDirectory, name)
-      const fileContents = fs.readFileSync(fullPath, "utf8")
-      const artist = yaml.load(fileContents) as Artist
-      return artist
-    })
-
-  return artists
 }
 
-export function getArtistByTag(tag: string): Artist | null {
-  const artists = getArtists()
-  return artists.find((artist) => artist["artist-tag"] === tag) || null
+export async function getArtistByTag(tag: string): Promise<Artist | null> {
+  try {
+    const response = await fetch(`/api/artists/${tag}`)
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null
+      }
+      throw new Error('Failed to fetch artist')
+    }
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching artist:', error)
+    return null
+  }
 }
 
 export async function getArtistImages(artistTag: string): Promise<GalleryImage[]> {

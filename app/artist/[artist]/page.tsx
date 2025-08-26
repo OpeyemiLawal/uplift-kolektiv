@@ -9,8 +9,8 @@ interface ArtistPageProps {
   }
 }
 
-export default function ArtistPage({ params }: ArtistPageProps) {
-  const artist = getArtistByTag(params.artist)
+export default async function ArtistPage({ params }: ArtistPageProps) {
+  const artist = await getArtistByTag(params.artist)
 
   if (!artist) {
     notFound()
@@ -25,7 +25,7 @@ export default function ArtistPage({ params }: ArtistPageProps) {
 
 export async function generateStaticParams() {
   const { getArtists } = await import("@/lib/artists")
-  const artists = getArtists()
+  const artists = await getArtists()
 
   return artists.map((artist) => ({
     artist: artist["artist-tag"],
