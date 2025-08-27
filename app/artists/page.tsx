@@ -1,9 +1,9 @@
 import { MainLayout } from "@/components/main-layout"
-import { getArtists } from "@/lib/artists"
+import { getArtists } from "@/lib/artists-server"
 import { ArtistCard } from "@/components/artist-card"
 
 export default async function ArtistsPage() {
-  const artists = await getArtists()
+  const artists = getArtists()
 
   return (
     <MainLayout>

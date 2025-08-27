@@ -3,8 +3,22 @@ import { discord_webhook, cloudflare_secret } from "@/lib/media.config"
 
 interface ContactFormData {
   name: string
+  company: string
+  eventName?: string
   email: string
+  phoneCountry?: string
+  phoneNumber?: string
+  selectedArtists?: Array<{ name: string; tag: string }>
+  eventDate?: string
+  eventEndDate?: string
+  isMultipleDayEvent?: boolean
+  country?: string
+  venue?: string
   message: string
+  gdprConsent?: boolean
+  dataAccuracy?: boolean
+  accommodationTerms?: boolean
+  bookingFeeTerms?: boolean
   turnstileToken?: string | null
 }
 
@@ -13,17 +27,27 @@ export async function POST(request: NextRequest) {
   
   try {
     const body: ContactFormData = await request.json()
-    const { name, email, message, turnstileToken } = body
+    const { 
+      name, company, eventName, email, phoneCountry, phoneNumber, 
+      selectedArtists, eventDate, eventEndDate, isMultipleDayEvent,
+      country, venue, message, gdprConsent, dataAccuracy, 
+      accommodationTerms, bookingFeeTerms, turnstileToken 
+    } = body
     
-    console.log('📥 Received data:', { name, email, message: message?.substring(0, 50) + '...', turnstileToken: turnstileToken ? 'SET' : 'NOT SET' })
+    console.log('📥 Received data:', { 
+      name, company, eventName, email, phoneCountry, phoneNumber, 
+      selectedArtists: selectedArtists?.length || 0, eventDate, eventEndDate, 
+      isMultipleDayEvent, country, venue, message: message?.substring(0, 50) + '...', 
+      turnstileToken: turnstileToken ? 'SET' : 'NOT SET' 
+    })
     console.log('🔧 Environment check:', {
       discord_webhook: discord_webhook ? 'SET' : 'NOT SET',
       cloudflare_secret: cloudflare_secret ? 'SET' : 'NOT SET'
     })
 
     // Validate required fields
-    if (!name?.trim() || !email?.trim() || !message?.trim()) {
-      return NextResponse.json({ error: "All fields are required" }, { status: 400 })
+    if (!name?.trim() || !company?.trim() || !email?.trim() || !message?.trim()) {
+      return NextResponse.json({ error: "All required fields are required" }, { status: 400 })
     }
 
     // Validate email format
@@ -75,6 +99,31 @@ export async function POST(request: NextRequest) {
 
     // Send to Discord webhook if configured
     if (discord_webhook) {
+      // Build phone number display
+      const phoneDisplay = phoneNumber ? `${phoneCountry || '+1'} ${phoneNumber}` : 'Not provided'
+      
+      // Build artists display
+      const artistsDisplay = selectedArtists && selectedArtists.length > 0 
+        ? selectedArtists.map(artist => `${artist.name} (@${artist.tag})`).join(', ')
+        : 'None selected'
+      
+      // Build event date display
+      const eventDateDisplay = eventDate 
+        ? isMultipleDayEvent && eventEndDate
+          ? `${new Date(eventDate).toLocaleDateString()} - ${new Date(eventEndDate).toLocaleDateString()}`
+          : new Date(eventDate).toLocaleDateString()
+        : 'Not specified'
+      
+      // Build terms display
+      const termsDisplay = [
+        gdprConsent ? '✅ GDPR Consent' : '❌ GDPR Consent',
+        dataAccuracy ? '✅ Data Accuracy' : '❌ Data Accuracy',
+        ...(selectedArtists && selectedArtists.length > 0 ? [
+          accommodationTerms ? '✅ Accommodation Terms' : '❌ Accommodation Terms',
+          bookingFeeTerms ? '✅ Booking Fee Terms' : '❌ Booking Fee Terms'
+        ] : [])
+      ].join('\n')
+      
       const discordPayload = {
         embeds: [
           {
@@ -87,13 +136,55 @@ export async function POST(request: NextRequest) {
                 inline: true,
               },
               {
-                name: "📧 Email",
+                name: "🏢 Company",
+                value: company,
+                inline: true,
+              },
+              {
+                name: "📧 Business Email",
                 value: email,
                 inline: true,
               },
               {
+                name: "📞 Phone Number",
+                value: phoneDisplay,
+                inline: true,
+              },
+              ...(eventName ? [{
+                name: "🎉 Event Name",
+                value: eventName,
+                inline: true,
+              }] : []),
+              {
+                name: "🎵 Selected Artists",
+                value: artistsDisplay,
+                inline: false,
+              },
+              ...(selectedArtists && selectedArtists.length > 0 ? [
+                {
+                  name: "📅 Event Date",
+                  value: eventDateDisplay,
+                  inline: true,
+                },
+                {
+                  name: "🌍 Country",
+                  value: country || 'Not specified',
+                  inline: true,
+                },
+                {
+                  name: "🏟️ Venue",
+                  value: venue || 'Not specified',
+                  inline: true,
+                }
+              ] : []),
+              {
                 name: "💬 Message",
                 value: message.length > 1000 ? message.substring(0, 1000) + "..." : message,
+                inline: false,
+              },
+              {
+                name: "📋 Terms & Conditions",
+                value: termsDisplay,
                 inline: false,
               },
             ],

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { MainLayout } from "@/components/main-layout"
 import { ArtistProfile } from "@/components/artist-profile"
-import { getArtistByTag } from "@/lib/artists"
+import { getArtistByTag, getArtists } from "@/lib/artists-server"
 
 interface ArtistPageProps {
   params: {
@@ -10,7 +10,7 @@ interface ArtistPageProps {
 }
 
 export default async function ArtistPage({ params }: ArtistPageProps) {
-  const artist = await getArtistByTag(params.artist)
+  const artist = getArtistByTag(params.artist)
 
   if (!artist) {
     notFound()
@@ -24,8 +24,7 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
 }
 
 export async function generateStaticParams() {
-  const { getArtists } = await import("@/lib/artists")
-  const artists = await getArtists()
+  const artists = getArtists()
 
   return artists.map((artist) => ({
     artist: artist["artist-tag"],
