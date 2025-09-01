@@ -1070,23 +1070,23 @@ export function ContactForm() {
 
         {/* Submit Button */}
         <div className="pt-4">
-          <Button
-            type="submit"
-            disabled={isSubmitting}
+        <Button
+          type="submit"
+          disabled={isSubmitting}
             className="w-full h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold text-lg rounded-xl transition-all duration-300 transform hover:scale-[1.02] disabled:transform-none disabled:opacity-70 shadow-lg hover:shadow-xl"
-          >
-            {isSubmitting ? (
+        >
+          {isSubmitting ? (
               <div className="flex items-center gap-3">
                 <Loader2 size={20} className="animate-spin" />
                 <span>Submitting...</span>
-              </div>
-            ) : (
+            </div>
+          ) : (
               <div className="flex items-center gap-3">
                 <Send size={20} />
                 <span>Submit</span>
-              </div>
-            )}
-          </Button>
+            </div>
+          )}
+        </Button>
         </div>
       </motion.form>
     </div>
